@@ -82,3 +82,4 @@ FORK_PLAN.md
 
 # Local runtime binaries (downloaded separately, too large for git)
 frontend/src-tauri/binaries/
+.serena/
