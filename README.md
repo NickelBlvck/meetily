@@ -9,6 +9,16 @@
 
 > Оригинальный README сохранён в [README-upstream.md](README-upstream.md).
 
+<!-- TODO: при необходимости замените ссылки на персональные реферальные ссылки -->
+<p align="center">
+  <a href="https://plusvibeapi.ru/">
+    <img alt="Транскрибация через API — PlusVibeAPI.ru" src="https://img.shields.io/badge/Расшифровка_через_API-PlusVibeAPI.ru-7C3AED?style=for-the-badge">
+  </a>
+  <a href="https://z.ai/">
+    <img alt="Сделано с помощью Zcode" src="https://img.shields.io/badge/Сделано_с_помощью-Zcode-000000?style=for-the-badge">
+  </a>
+</p>
+
 ---
 
 ## Что добавлено/изменено в форке
