@@ -9,12 +9,12 @@
 
 > Оригинальный README сохранён в [README-upstream.md](README-upstream.md).
 
-<!-- TODO: замените ссылку Zcode на вашу персональную реферальную ссылку из личного кабинета Z.ai (Invite Friends) -->
+<!-- Реферальная ссылка Zcode: z.ai/subscribe?ic=CG0ECV4DAI -->
 <p align="center">
   <a href="https://plusvibeapi.ru/?ref=AH4GAGT3">
     <img alt="Транскрибация через API — PlusVibeAPI.ru" src="https://img.shields.io/badge/Расшифровка_через_API-PlusVibeAPI.ru-7C3AED?style=for-the-badge">
   </a>
-  <a href="https://zcode.z.ai/">
+  <a href="https://z.ai/subscribe?ic=CG0ECV4DAI">
     <img alt="Сделано с помощью Zcode" src="https://img.shields.io/badge/Сделано_с_помощью-Zcode-000000?style=for-the-badge">
   </a>
 </p>
