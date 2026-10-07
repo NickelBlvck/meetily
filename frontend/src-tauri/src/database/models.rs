@@ -127,4 +127,10 @@ pub struct TranscriptSetting {
     #[sqlx(rename = "openaiApiKey")]
     #[serde(rename = "openaiApiKey")]
     pub openai_api_key: Option<String>,
+    #[sqlx(rename = "customApiKey")]
+    #[serde(rename = "customApiKey")]
+    pub custom_api_key: Option<String>,
+    #[sqlx(rename = "endpoint")]
+    #[serde(rename = "endpoint")]
+    pub endpoint: Option<String>,
 }

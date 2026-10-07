@@ -25,6 +25,14 @@ export function getProviderCommands(provider: string): ProviderCommands | null {
   return PROVIDER_COMMANDS[provider] ?? null;
 }
 
+/**
+ * Remote providers have no local model to download or load, so readiness
+ * checks are short-circuited (validation happens in the Rust layer instead).
+ */
+export function isRemoteProvider(provider: string): boolean {
+  return provider === 'custom';
+}
+
 export function hasDownloadingModel(models: ModelWithStatus[]): boolean {
   return models.some(({ status }) => (
     status === 'Downloading'

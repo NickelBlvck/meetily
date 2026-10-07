@@ -521,6 +521,20 @@ async fn transcribe_chunk_with_provider<R: Runtime>(
 
             match provider.transcribe(speech_samples, language).await {
                 Ok(result) => {
+                    // Accumulate token usage reported by remote APIs
+                    if result.total_tokens.is_some()
+                        || result.input_tokens.is_some()
+                        || result.output_tokens.is_some()
+                    {
+                        crate::api::api::record_transcription_usage(
+                            app,
+                            result.input_tokens.unwrap_or(0),
+                            result.output_tokens.unwrap_or(0),
+                            result.total_tokens.unwrap_or(0),
+                        )
+                        .await;
+                    }
+
                     let cleaned_text = result.text.trim().to_string();
                     if cleaned_text.is_empty() {
                         return Ok((String::new(), result.confidence, result.is_partial));

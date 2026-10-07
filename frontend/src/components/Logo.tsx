@@ -17,6 +17,7 @@ const Logo = React.forwardRef<HTMLButtonElement, LogoProps>(
             <button
               ref={ref}
               type="button"
+              title="Meetily — Fork by NickelBlvck"
               className="flex items-center justify-center mb-2 cursor-pointer bg-transparent border-none p-0 hover:opacity-80 transition-opacity"
               aria-label="About Meetily"
             >
@@ -35,10 +36,18 @@ const Logo = React.forwardRef<HTMLButtonElement, LogoProps>(
             <button
               ref={ref}
               type="button"
-              className="w-full text-lg text-center border rounded-full bg-blue-50 border-white font-semibold text-gray-700 mb-2 block items-center cursor-pointer hover:opacity-80 transition-opacity focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+              className="w-full border rounded-full bg-primary/10 border-white mb-2 block cursor-pointer hover:opacity-80 transition-opacity focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
               aria-label="About Meetily"
             >
-              <span>Meetily</span>
+              <span
+                className="block text-lg font-bold text-foreground/90 leading-tight"
+                style={{ fontFamily: 'var(--font-logo), sans-serif' }}
+              >
+                Meetily
+              </span>
+              <span className="block text-[10px] text-muted-foreground leading-none pb-1.5">
+                Fork by NickelBlvck
+              </span>
             </button>
           </DialogTrigger>
         )}

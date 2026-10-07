@@ -8,6 +8,7 @@ export function useTemplates() {
     id: string;
     name: string;
     description: string;
+    custom: boolean;
   }>>([]);
   const [selectedTemplate, setSelectedTemplate] = useState<string>('standard_meeting');
 
@@ -19,6 +20,7 @@ export function useTemplates() {
           id: string;
           name: string;
           description: string;
+          custom: boolean;
         }>;
         console.log('Available templates:', templates);
         setAvailableTemplates(templates);
@@ -27,6 +29,11 @@ export function useTemplates() {
       }
     };
     fetchTemplates();
+
+    // Refetch when templates are edited in Settings
+    const onTemplatesUpdated = () => { fetchTemplates(); };
+    window.addEventListener('templates-updated', onTemplatesUpdated);
+    return () => window.removeEventListener('templates-updated', onTemplatesUpdated);
   }, []);
 
   // Handle template selection

@@ -74,6 +74,7 @@ pub async fn validate_transcription_model_ready<R: Runtime>(app: &AppHandle<R>) 
                 provider: "parakeet".to_string(),
                 model: crate::config::DEFAULT_PARAKEET_MODEL.to_string(),
                 api_key: None,
+                endpoint: None,
             }
         }
         Err(e) => {
@@ -82,6 +83,7 @@ pub async fn validate_transcription_model_ready<R: Runtime>(app: &AppHandle<R>) 
                 provider: "parakeet".to_string(),
                 model: crate::config::DEFAULT_PARAKEET_MODEL.to_string(),
                 api_key: None,
+                endpoint: None,
             }
         }
     };
@@ -135,6 +137,18 @@ pub async fn validate_transcription_model_ready<R: Runtime>(app: &AppHandle<R>) 
                 }
             }
         }
+        "custom" => {
+            // Remote OpenAI-compatible endpoint: validate configuration up front.
+            if config.endpoint.as_deref().map(|e| e.trim().is_empty()).unwrap_or(true) {
+                Err("Remote transcription is selected but the endpoint URL is empty. Set it in Settings → Transcript.".to_string())
+            } else {
+                info!(
+                    "🔍 Remote transcription endpoint configured: {}",
+                    config.endpoint.as_deref().unwrap_or_default()
+                );
+                Ok(())
+            }
+        }
         other => {
             warn!("❌ Unsupported transcription provider for local recording: {}", other);
             Err(format!(
@@ -170,6 +184,7 @@ pub async fn get_or_init_transcription_engine<R: Runtime>(
                 provider: "parakeet".to_string(),
                 model: crate::config::DEFAULT_PARAKEET_MODEL.to_string(),
                 api_key: None,
+                endpoint: None,
             }
         }
         Err(e) => {
@@ -178,6 +193,7 @@ pub async fn get_or_init_transcription_engine<R: Runtime>(
                 provider: "parakeet".to_string(),
                 model: crate::config::DEFAULT_PARAKEET_MODEL.to_string(),
                 api_key: None,
+                endpoint: None,
             }
         }
     };
@@ -211,6 +227,21 @@ pub async fn get_or_init_transcription_engine<R: Runtime>(
                     Err("Parakeet engine not initialized. This should not happen after validation.".to_string())
                 }
             }
+        }
+        "custom" => {
+            let endpoint = match config.endpoint.as_deref().map(|e| e.trim()).filter(|e| !e.is_empty()) {
+                Some(e) => e.to_string(),
+                None => {
+                    return Err("Remote transcription endpoint is not configured. Set it in Settings → Transcript.".to_string())
+                }
+            };
+            info!("🌐 Initializing remote transcription engine for {}", endpoint);
+            let provider = super::remote_provider::RemoteTranscriptionProvider::new(
+                endpoint,
+                config.api_key,
+                Some(config.model),
+            );
+            Ok(TranscriptionEngine::Provider(std::sync::Arc::new(provider)))
         }
         "localWhisper" | _ => {
             info!("🎤 Initializing Whisper transcription engine");

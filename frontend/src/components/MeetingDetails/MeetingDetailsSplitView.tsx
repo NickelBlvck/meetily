@@ -3,14 +3,16 @@
 import { useCallback, useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { FileText, Sparkles } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useConfig } from '@/contexts/ConfigContext';
+import type { TranslationKey } from '@/lib/i18n';
 const STORAGE_KEY = 'meetily.meetingDetails.transcriptPaneRatio';
 const DEFAULT_RATIO = 0.3;
 const MIN_RATIO = 0.3;
 const MAX_RATIO = 0.5;
 
-const TABS = [
-  { value: 'transcript' as const, label: 'Transcript', icon: FileText },
-  { value: 'summary' as const, label: 'Summary', icon: Sparkles },
+const TABS: { value: 'transcript' | 'summary'; label: TranslationKey; icon: typeof FileText }[] = [
+  { value: 'transcript', label: 'meeting.transcriptTab', icon: FileText },
+  { value: 'summary', label: 'meeting.summaryTab', icon: Sparkles },
 ];
 
 function readStoredRatio(): number {
@@ -50,6 +52,7 @@ export function MeetingDetailsSplitView({
   const containerRef = useRef<HTMLDivElement>(null);
   const [ratio, setRatio] = useState(DEFAULT_RATIO);
   const [isDesktop, setIsDesktop] = useState(true);
+  const { t } = useConfig();
   const dragging = useRef(false);
   const clampRatio = (value: number) => Math.min(MAX_RATIO, Math.max(MIN_RATIO, value));
 
@@ -101,10 +104,10 @@ export function MeetingDetailsSplitView({
   }, [ratio]);
 
   const transcriptPanelProps = isDesktop
-    ? { role: 'region' as const, 'aria-label': 'Transcript', tabIndex: -1 }
+    ? { role: 'region' as const, 'aria-label': t('meeting.transcriptTab'), tabIndex: -1 }
     : {};
   const summaryPanelProps = isDesktop
-    ? { role: 'region' as const, 'aria-label': 'Summary', tabIndex: -1 }
+    ? { role: 'region' as const, 'aria-label': t('meeting.summaryTab'), tabIndex: -1 }
     : {};
 
   return (
@@ -113,18 +116,18 @@ export function MeetingDetailsSplitView({
       onValueChange={(value) => onTabChange(value as MeetingDetailsTab)}
       className="flex flex-1 min-h-0 min-w-0 flex-col overflow-hidden"
     >
-      <div className="shrink-0 bg-white px-2 md:hidden">
-        <TabsList className="relative h-auto w-full justify-center rounded-none border-b border-gray-200 bg-transparent p-0">
+      <div className="shrink-0 bg-card px-2 md:hidden">
+        <TabsList className="relative h-auto w-full justify-center rounded-none border-b border-border bg-transparent p-0">
           {TABS.map((tab) => {
             const Icon = tab.icon;
             return (
               <TabsTrigger
                 key={tab.value}
                 value={tab.value}
-                className="relative z-10 flex items-center gap-2 rounded-none border-0 bg-transparent px-6 py-4 text-gray-600 data-[state=active]:bg-transparent data-[state=active]:text-blue-600 data-[state=active]:shadow-none hover:text-gray-900"
+                className="relative z-10 flex items-center gap-2 rounded-none border-0 bg-transparent px-6 py-4 text-muted-foreground data-[state=active]:bg-transparent data-[state=active]:text-primary data-[state=active]:shadow-none hover:text-foreground"
               >
                 <Icon className="h-4 w-4" />
-                {tab.label}
+                {t(tab.label)}
               </TabsTrigger>
             );
           })}
@@ -159,7 +162,7 @@ export function MeetingDetailsSplitView({
           onPointerDown={onPointerDown}
           onKeyDown={onSeparatorKeyDown}
         >
-          <div className="h-full w-px bg-gray-200 transition-[width,background-color] duration-150 ease-out group-hover:w-1 group-hover:bg-blue-400 group-active:w-1 group-active:bg-blue-500" />
+          <div className="h-full w-px bg-muted transition-[width,background-color] duration-150 ease-out group-hover:w-1 group-hover:bg-blue-400 group-active:w-1 group-active:bg-blue-500" />
         </div>
         <TabsContent
           value="summary"

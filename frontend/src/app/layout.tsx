@@ -1,14 +1,13 @@
 'use client'
 
 import './globals.css'
-import { Source_Sans_3 } from 'next/font/google'
+import { Source_Sans_3, Space_Grotesk } from 'next/font/google'
 import Sidebar from '@/components/Sidebar'
 import { SidebarProvider } from '@/components/Sidebar/SidebarProvider'
 import MainContent from '@/components/MainContent'
-import AnalyticsProvider from '@/components/AnalyticsProvider'
 import { Toaster, toast } from 'sonner'
 import "sonner/dist/styles.css"
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { listen, UnlistenFn } from '@tauri-apps/api/event'
 import { invoke } from '@tauri-apps/api/core'
 import { TooltipProvider } from '@/components/ui/tooltip'
@@ -16,15 +15,16 @@ import { RecordingStateProvider } from '@/contexts/RecordingStateContext'
 import { OllamaDownloadProvider } from '@/contexts/OllamaDownloadContext'
 import { TranscriptProvider } from '@/contexts/TranscriptContext'
 import { ConfigProvider, useConfig } from '@/contexts/ConfigContext'
+import { useRecordingState } from '@/contexts/RecordingStateContext'
 import { OnboardingProvider } from '@/contexts/OnboardingContext'
 import { OnboardingFlow } from '@/components/onboarding'
 import { loadBetaFeatures } from '@/types/betaFeatures'
 import { DownloadProgressToastProvider } from '@/components/shared/DownloadProgressToast'
-import { UpdateCheckProvider } from '@/components/UpdateCheckProvider'
 import { RecordingPostProcessingProvider } from '@/contexts/RecordingPostProcessingProvider'
 import { ImportAudioDialog, ImportDropOverlay } from '@/components/ImportAudio'
 import { ImportDialogProvider } from '@/contexts/ImportDialogContext'
 import { isAudioExtension, getAudioFormatsDisplayList } from '@/constants/audioFormats'
+import { ThemeProvider } from 'next-themes'
 
 
 const sourceSans3 = Source_Sans_3({
@@ -32,6 +32,71 @@ const sourceSans3 = Source_Sans_3({
   weight: ['400', '500', '600', '700'],
   variable: '--font-source-sans-3',
 })
+
+// Distinctive wordmark font for the app logo / branding
+const spaceGrotesk = Space_Grotesk({
+  subsets: ['latin'],
+  weight: ['500', '700'],
+  variable: '--font-logo',
+})
+
+// System notification for call detection (shown when Meetily is not focused)
+async function notifyCallDetected(title: string, body: string) {
+  try {
+    const { isPermissionGranted, requestPermission, sendNotification } =
+      await import('@tauri-apps/plugin-notification');
+    let granted = await isPermissionGranted();
+    if (!granted) granted = (await requestPermission()) === 'granted';
+    if (granted) sendNotification({ title, body });
+  } catch (error) {
+    console.warn('[Layout] Failed to send call notification:', error);
+  }
+}
+
+// Offers to start recording when a call (Zoom / Google Meet / Teams / ...) is detected
+function CallDetectionListener() {
+  const { isRecording } = useRecordingState();
+  const { t } = useConfig();
+  const recordingRef = useRef(isRecording);
+  recordingRef.current = isRecording;
+
+  useEffect(() => {
+    const startRecording = () => {
+      if (window.location.pathname === '/') {
+        window.dispatchEvent(new CustomEvent('start-recording-from-sidebar'));
+      } else {
+        sessionStorage.setItem('autoStartRecording', 'true');
+        window.location.assign('/');
+      }
+    };
+
+    const unlisten = listen<{ app: string }>('call-detected', (event) => {
+      if (recordingRef.current) {
+        console.log('[Layout] Call detected but recording is already active, ignoring');
+        return;
+      }
+      const app = event.payload.app;
+      console.log('[Layout] Call detected:', app);
+
+      // Draw attention via a system notification when the app is in background
+      if (typeof document !== 'undefined' && !document.hasFocus()) {
+        void notifyCallDetected(t('call.detectedTitle', { app }), t('call.detectedBody'));
+      }
+
+      toast.info(t('call.detectedTitle', { app }), {
+        description: t('call.detectedBody'),
+        action: { label: t('call.startRecording'), onClick: startRecording },
+        duration: 30000,
+      });
+    });
+
+    return () => {
+      unlisten.then(fn => fn());
+    };
+  }, [t]);
+
+  return null;
+}
 
 // Module-level component — stable reference across RootLayout re-renders.
 // Defined here (not inside RootLayout) so React never sees a new function type
@@ -231,52 +296,53 @@ export default function RootLayout({
   }
 
   return (
-    <html lang="en">
-      <body className={`${sourceSans3.variable} font-sans antialiased`}>
-        <AnalyticsProvider>
-          <RecordingStateProvider>
-            <TranscriptProvider>
-              <ConfigProvider>
-                <OllamaDownloadProvider>
-                  <OnboardingProvider>
-                    <UpdateCheckProvider>
-                      <SidebarProvider>
-                        <TooltipProvider>
-                          <RecordingPostProcessingProvider>
-                            <ImportDialogProvider onOpen={handleOpenImportDialog}>
-                              {/* Download progress toast provider - listens for background downloads */}
-                              <DownloadProgressToastProvider />
+    <html lang="en" suppressHydrationWarning>
+      <body className={`${sourceSans3.variable} ${spaceGrotesk.variable} font-sans antialiased`}>
+        <ThemeProvider attribute="class" defaultTheme="dark" enableSystem disableTransitionOnChange>
+        <RecordingStateProvider>
+          <TranscriptProvider>
+            <ConfigProvider>
+              <OllamaDownloadProvider>
+                <OnboardingProvider>
+                  <SidebarProvider>
+                    <TooltipProvider>
+                      <RecordingPostProcessingProvider>
+                        <ImportDialogProvider onOpen={handleOpenImportDialog}>
+                          {/* Download progress toast provider - listens for background downloads */}
+                          <DownloadProgressToastProvider />
 
-                              {/* Show onboarding or main app */}
-                              {showOnboarding ? (
-                                <OnboardingFlow onComplete={handleOnboardingComplete} />
-                              ) : (
-                                <div className="flex">
-                                  <Sidebar />
-                                  <MainContent>{children}</MainContent>
-                                </div>
-                              )}
-                              {/* Import audio overlay and dialog */}
-                              <ImportDropOverlay visible={showDropOverlay} />
-                              <ConditionalImportDialog
-                                showImportDialog={showImportDialog}
-                                handleImportDialogClose={handleImportDialogClose}
-                                importFilePath={importFilePath}
-                              />
-                            </ImportDialogProvider>
-                          </RecordingPostProcessingProvider>
-                        </TooltipProvider>
-                      </SidebarProvider>
-                    </UpdateCheckProvider>
-                  </OnboardingProvider>
+                          {/* Call detection (Zoom / Google Meet / ...) -> offer to record */}
+                          <CallDetectionListener />
 
-                </OllamaDownloadProvider>
-              </ConfigProvider>
-            </TranscriptProvider>
-          </RecordingStateProvider>
-        </AnalyticsProvider>
+                          {/* Show onboarding or main app */}
+                          {showOnboarding ? (
+                            <OnboardingFlow onComplete={handleOnboardingComplete} />
+                          ) : (
+                            <div className="flex">
+                              <Sidebar />
+                              <MainContent>{children}</MainContent>
+                            </div>
+                          )}
+                          {/* Import audio overlay and dialog */}
+                          <ImportDropOverlay visible={showDropOverlay} />
+                          <ConditionalImportDialog
+                            showImportDialog={showImportDialog}
+                            handleImportDialogClose={handleImportDialogClose}
+                            importFilePath={importFilePath}
+                          />
+                        </ImportDialogProvider>
+                      </RecordingPostProcessingProvider>
+                    </TooltipProvider>
+                  </SidebarProvider>
+                </OnboardingProvider>
+
+              </OllamaDownloadProvider>
+            </ConfigProvider>
+          </TranscriptProvider>
+        </RecordingStateProvider>
 
         <Toaster position="bottom-center" richColors closeButton />
+        </ThemeProvider>
       </body>
     </html>
   )

@@ -13,12 +13,14 @@ interface SidebarItem {
   id: string;
   title: string;
   type: 'folder' | 'file';
+  createdAt?: string;
   children?: SidebarItem[];
 }
 
 export interface CurrentMeeting {
   id: string;
   title: string;
+  createdAt?: string;
 }
 
 // Search result type for transcript search
@@ -97,10 +99,11 @@ export function SidebarProvider({ children }: { children: React.ReactNode }) {
   const fetchMeetings = React.useCallback(async () => {
     if (serverAddress) {
       try {
-        const meetings = await invoke('api_get_meetings') as Array<{ id: string, title: string }>;
+        const meetings = await invoke('api_get_meetings') as Array<{ id: string, title: string, createdAt?: string }>;
         const transformedMeetings = meetings.map((meeting: any) => ({
           id: meeting.id,
-          title: meeting.title
+          title: meeting.title,
+          createdAt: meeting.createdAt
         }));
         setMeetings(transformedMeetings);
         Analytics.trackBackendConnection(true);
@@ -130,7 +133,7 @@ export function SidebarProvider({ children }: { children: React.ReactNode }) {
       title: 'Meeting Notes',
       type: 'folder' as const,
       children: [
-        ...meetings.map(meeting => ({ id: meeting.id, title: meeting.title, type: 'file' as const }))
+        ...meetings.map(meeting => ({ id: meeting.id, title: meeting.title, createdAt: meeting.createdAt, type: 'file' as const }))
       ]
     },
   ];
@@ -155,23 +158,28 @@ export function SidebarProvider({ children }: { children: React.ReactNode }) {
 
   // Function to handle recording toggle from sidebar
   const handleRecordingToggle = () => {
-    if (!isRecording) {
-      // Check if already on home page
-      if (pathname === '/') {
-        // Already on home - trigger recording directly via custom event
-        console.log('Triggering recording from sidebar (already on home page)');
-        window.dispatchEvent(new CustomEvent('start-recording-from-sidebar'));
-      } else {
-        // Not on home - navigate and use auto-start mechanism
-        console.log('Navigating to home page with auto-start flag');
-        sessionStorage.setItem('autoStartRecording', 'true');
-        router.push('/');
-      }
-
-      // Track recording initiation from sidebar
-      Analytics.trackButtonClick('start_recording', 'sidebar');
+    if (isRecording) {
+      // Recording is live - the Home page listens for this event and stops
+      console.log('Stopping recording from sidebar');
+      window.dispatchEvent(new CustomEvent('stop-recording-from-sidebar'));
+      Analytics.trackButtonClick('stop_recording', 'sidebar');
+      return;
     }
-    // The actual recording start/stop is handled in the Home component
+
+    // Check if already on home page
+    if (pathname === '/') {
+      // Already on home - trigger recording directly via custom event
+      console.log('Triggering recording from sidebar (already on home page)');
+      window.dispatchEvent(new CustomEvent('start-recording-from-sidebar'));
+    } else {
+      // Not on home - navigate and use auto-start mechanism
+      console.log('Navigating to home page with auto-start flag');
+      sessionStorage.setItem('autoStartRecording', 'true');
+      router.push('/');
+    }
+
+    // Track recording initiation from sidebar
+    Analytics.trackButtonClick('start_recording', 'sidebar');
   };
 
   // Function to search through meeting transcripts

@@ -544,6 +544,7 @@ impl SummaryService {
         };
 
         let client = reqwest::Client::new();
+        let prompt_overrides = crate::summary::prompts::load_overrides(&pool).await;
         let result = generate_meeting_summary(
             &client,
             &provider,
@@ -564,6 +565,7 @@ impl SummaryService {
             summary_language.as_deref(),
             detected_summary_language.as_deref(),
             cached_english.as_deref(),
+            &prompt_overrides,
         )
         .await;
 

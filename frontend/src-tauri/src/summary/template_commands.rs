@@ -14,6 +14,10 @@ pub struct TemplateInfo {
 
     /// Brief description of the template's purpose
     pub description: String,
+
+    /// Whether a user-defined override exists for this template
+    #[serde(default)]
+    pub custom: bool,
 }
 
 /// Detailed template structure for preview/debugging
@@ -50,6 +54,7 @@ pub async fn api_list_templates<R: Runtime>(
     let template_infos: Vec<TemplateInfo> = templates
         .into_iter()
         .map(|(id, name, description)| TemplateInfo {
+            custom: templates::custom_template_exists(&id),
             id,
             name,
             description,
@@ -121,6 +126,58 @@ pub async fn api_validate_template<R: Runtime>(
             Err(e)
         }
     }
+}
+
+/// Restrict template ids to a filesystem-safe set
+fn validate_template_id(template_id: &str) -> Result<(), String> {
+    if template_id.is_empty()
+        || template_id.len() > 64
+        || !template_id
+            .chars()
+            .all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == '_' || c == '-')
+    {
+        return Err(
+            "Template ID must contain only lowercase latin letters, digits, '_' or '-'"
+                .to_string(),
+        );
+    }
+    Ok(())
+}
+
+/// Get the raw JSON content of a template as currently resolved
+/// (custom override first, then bundled, then built-in)
+#[tauri::command]
+pub async fn api_get_template_json<R: Runtime>(
+    _app: tauri::AppHandle<R>,
+    template_id: String,
+) -> Result<String, String> {
+    info!("api_get_template_json called for '{}'", template_id);
+    templates::get_template_json(&template_id)
+}
+
+/// Validate and save a custom template override. Overwrites any existing
+/// override with the same id; built-in templates remain untouched.
+#[tauri::command]
+pub async fn api_save_template<R: Runtime>(
+    _app: tauri::AppHandle<R>,
+    template_id: String,
+    template_json: String,
+) -> Result<(), String> {
+    info!("api_save_template called for '{}'", template_id);
+    validate_template_id(&template_id)?;
+    templates::save_custom_template(&template_id, &template_json)
+}
+
+/// Delete a custom override for a template, restoring the built-in version.
+/// Returns true if an override existed and was removed.
+#[tauri::command]
+pub async fn api_delete_template_override<R: Runtime>(
+    _app: tauri::AppHandle<R>,
+    template_id: String,
+) -> Result<bool, String> {
+    info!("api_delete_template_override called for '{}'", template_id);
+    validate_template_id(&template_id)?;
+    templates::delete_custom_template(&template_id)
 }
 
 #[cfg(test)]

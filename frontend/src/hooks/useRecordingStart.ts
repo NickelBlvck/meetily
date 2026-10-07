@@ -8,6 +8,7 @@ import { recordingService } from '@/services/recordingService';
 import Analytics from '@/lib/analytics';
 import { showRecordingNotification } from '@/lib/recordingNotification';
 import {
+  isRemoteProvider,
   getProviderCommands,
   hasDownloadingModel,
   type ModelWithStatus,
@@ -82,6 +83,9 @@ export function useRecordingStart(
   const checkTranscriptionModelReady = useCallback(async (): Promise<boolean> => {
     try {
       const provider = await getTranscriptionProvider();
+      if (isRemoteProvider(provider)) {
+        return true;
+      }
       const commands = getProviderCommands(provider);
 
       if (commands) {
@@ -101,6 +105,9 @@ export function useRecordingStart(
   const checkIfModelDownloading = useCallback(async (): Promise<boolean> => {
     try {
       const provider = await getTranscriptionProvider();
+      if (isRemoteProvider(provider)) {
+        return false;
+      }
       const commands = getProviderCommands(provider);
       if (!commands) return false;
 

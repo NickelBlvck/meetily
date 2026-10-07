@@ -38,11 +38,15 @@ impl std::fmt::Display for TranscriptionError {
 impl std::error::Error for TranscriptionError {}
 
 /// Unified transcription result across all providers
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct TranscriptResult {
     pub text: String,
     pub confidence: Option<f32>, // None if provider doesn't support confidence scores
     pub is_partial: bool,
+    /// Token usage reported by remote APIs (None for local engines)
+    pub input_tokens: Option<u64>,
+    pub output_tokens: Option<u64>,
+    pub total_tokens: Option<u64>,
 }
 
 /// Trait for transcription providers (Whisper, Parakeet, future providers)

@@ -4,7 +4,10 @@ import { Transcript, TranscriptSegmentData } from '@/types';
 import { TranscriptView } from '@/components/TranscriptView';
 import { VirtualizedTranscriptView } from '@/components/VirtualizedTranscriptView';
 import { TranscriptButtonGroup } from './TranscriptButtonGroup';
-import { useMemo } from 'react';
+import { useMemo, useRef, useCallback } from 'react';
+import { Mic } from 'lucide-react';
+import { useConfig } from '@/contexts/ConfigContext';
+import { useDictation } from '@/hooks/useDictation';
 
 interface TranscriptPanelProps {
   transcripts: Transcript[];
@@ -49,6 +52,31 @@ export function TranscriptPanel({
   meetingFolderPath,
   onRefetchTranscripts,
 }: TranscriptPanelProps) {
+  const { t } = useConfig();
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  // Insert recognized dictation text at the caret, padded with spaces
+  const handleDictationInsert = useCallback((text: string) => {
+    const textarea = textareaRef.current;
+    const value = customPrompt;
+    const start = textarea?.selectionStart ?? value.length;
+    const end = textarea?.selectionEnd ?? start;
+    const needsSpace = start > 0 && !/\s$/.test(value.slice(0, start));
+    const inserted = (needsSpace ? ' ' : '') + text + ' ';
+    onPromptChange(value.slice(0, start) + inserted + value.slice(end));
+    const caret = start + inserted.length;
+    requestAnimationFrame(() => {
+      if (textarea) {
+        textarea.focus();
+        textarea.setSelectionRange(caret, caret);
+      }
+    });
+  }, [customPrompt, onPromptChange]);
+
+  const { state: dictationState, toggle: toggleDictation } = useDictation({
+    onInsert: handleDictationInsert,
+    disabled: isRecording,
+  });
   // Convert transcripts to segments if pagination is not used but we want virtualization
   const convertedSegments = useMemo(() => {
     if (usePagination && segments) {
@@ -65,9 +93,9 @@ export function TranscriptPanel({
   }, [transcripts, usePagination, segments]);
 
   return (
-    <div className="flex h-full min-w-0 w-full bg-white flex-col relative @container">
+    <div className="flex h-full min-w-0 w-full bg-card flex-col relative @container">
       {/* Title area */}
-      <div className="p-4 border-b border-gray-200">
+      <div className="p-4 border-b border-border">
         <TranscriptButtonGroup
           transcriptCount={usePagination ? (totalCount ?? convertedSegments.length) : (transcripts?.length || 0)}
           onCopyTranscript={onCopyTranscript}
@@ -99,13 +127,35 @@ export function TranscriptPanel({
 
       {/* Custom prompt input at bottom of transcript section */}
       {!isRecording && convertedSegments.length > 0 && (
-        <div className="p-1 border-t border-gray-200">
-          <textarea
-            placeholder="Add context for AI summary. For example people involved, meeting overview, objective etc..."
-            className="w-full px-3 py-2 border border-gray-200 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 bg-white shadow-sm min-h-[80px] resize-y"
-            value={customPrompt}
-            onChange={(e) => onPromptChange(e.target.value)}
-          />
+        <div className="p-1 border-t border-border">
+          <div className="relative">
+            <textarea
+              ref={textareaRef}
+              placeholder={t('meeting.contextPlaceholder')}
+              className="w-full px-3 py-2 pr-10 border border-border rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-ring focus:border-ring bg-card shadow-sm min-h-[80px] resize-y"
+              value={customPrompt}
+              onChange={(e) => onPromptChange(e.target.value)}
+            />
+            <button
+              type="button"
+              onClick={toggleDictation}
+              disabled={isRecording}
+              aria-label={t('dictation.mic')}
+              title={t('dictation.mic')}
+              className={`absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-md transition-colors ${
+                dictationState === 'recording'
+                  ? 'bg-destructive/15 text-destructive'
+                  : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+              } disabled:cursor-not-allowed disabled:opacity-50`}
+            >
+              <Mic className={`h-4 w-4 ${dictationState === 'recording' ? 'animate-pulse' : ''}`} />
+            </button>
+            {dictationState === 'recording' && (
+              <span className="pointer-events-none absolute right-10 top-3.5 text-xs font-medium text-destructive animate-pulse">
+                {t('dictation.listening')}
+              </span>
+            )}
+          </div>
         </div>
       )}
     </div>

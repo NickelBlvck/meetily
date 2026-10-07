@@ -7,6 +7,7 @@ import { configService, ModelConfig } from '@/services/configService';
 import { invoke } from '@tauri-apps/api/core';
 import Analytics from '@/lib/analytics';
 import { BetaFeatures, BetaFeatureKey, loadBetaFeatures, saveBetaFeatures } from '@/types/betaFeatures';
+import { isLanguage, translate, type Language, type TranslationKey } from '@/lib/i18n';
 
 export interface OllamaModel {
   name: string;
@@ -59,6 +60,11 @@ interface ConfigContextType {
   // Language preference
   selectedLanguage: string;
   setSelectedLanguage: (lang: string) => void;
+
+  // UI language (interface translations)
+  language: Language;
+  setLanguage: (lang: Language) => void;
+  t: (key: TranslationKey, vars?: Record<string, string | number>) => string;
 
   // UI preferences
   showConfidenceIndicator: boolean;
@@ -146,6 +152,15 @@ export function ConfigProvider({ children }: { children: ReactNode }) {
       return saved || 'auto';
     }
     return 'auto';
+  });
+
+  // UI language state (interface translations, persisted in localStorage)
+  const [language, setLanguageState] = useState<Language>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('uiLanguage');
+      return isLanguage(saved) ? saved : 'ru';
+    }
+    return 'ru';
   });
 
   // UI preferences state
@@ -487,6 +502,24 @@ export function ConfigProvider({ children }: { children: ReactNode }) {
     );
   }, []);
 
+  // Persist UI language and keep <html lang> in sync
+  const setLanguage = useCallback((lang: Language) => {
+    setLanguageState(lang);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('uiLanguage', lang);
+    }
+    document.documentElement.lang = lang;
+  }, []);
+
+  useEffect(() => {
+    document.documentElement.lang = language;
+  }, [language]);
+
+  const t = useCallback(
+    (key: TranslationKey, vars?: Record<string, string | number>) => translate(language, key, vars),
+    [language]
+  );
+
   const value: ConfigContextType = useMemo(() => ({
     modelConfig,
     setModelConfig,
@@ -501,6 +534,9 @@ export function ConfigProvider({ children }: { children: ReactNode }) {
     setSelectedDevices,
     selectedLanguage,
     setSelectedLanguage: handleSetSelectedLanguage,
+    language,
+    setLanguage,
+    t,
     showConfidenceIndicator,
     toggleConfidenceIndicator,
     betaFeatures,
@@ -524,6 +560,9 @@ export function ConfigProvider({ children }: { children: ReactNode }) {
     selectedDevices,
     selectedLanguage,
     handleSetSelectedLanguage,
+    language,
+    setLanguage,
+    t,
     showConfidenceIndicator,
     toggleConfidenceIndicator,
     betaFeatures,

@@ -190,7 +190,7 @@ export default function PageContent({
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3, ease: 'easeOut' }}
-      className="flex flex-col h-screen min-w-0 bg-gray-50"
+      className="flex flex-col h-screen min-w-0 bg-muted/50"
     >
       <div className="flex flex-1 min-w-0 overflow-hidden">
         <MeetingDetailsSplitView
@@ -229,6 +229,8 @@ export default function PageContent({
               isSummaryDirty={meetingData.isSummaryDirty}
               onSaveAll={meetingData.saveAllChanges}
               onCopySummary={copyOperations.handleCopySummary}
+              onExportMarkdown={copyOperations.handleExportMarkdown}
+              onExportObsidian={copyOperations.handleExportObsidian}
               aiSummary={meetingData.aiSummary}
               summaryStatus={summaryGeneration.summaryStatus}
               transcripts={meetingData.transcripts}

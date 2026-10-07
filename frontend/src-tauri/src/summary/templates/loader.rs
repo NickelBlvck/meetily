@@ -217,6 +217,68 @@ pub fn list_templates() -> Vec<(String, String, String)> {
     templates
 }
 
+/// Whether a user-defined override exists for the given template id
+pub fn custom_template_exists(template_id: &str) -> bool {
+    match get_custom_templates_dir() {
+        Some(dir) => dir.join(format!("{}.json", template_id)).exists(),
+        None => false,
+    }
+}
+
+/// Return the raw JSON content of the template as currently resolved
+/// (custom override first, then bundled, then built-in)
+pub fn get_template_json(template_id: &str) -> Result<String, String> {
+    if let Some(custom) = load_custom_template(template_id) {
+        return Ok(custom);
+    }
+    if let Some(bundled) = load_bundled_template(template_id) {
+        return Ok(bundled);
+    }
+    if let Some(builtin) = defaults::get_builtin_template(template_id) {
+        return Ok(builtin.to_string());
+    }
+    Err(format!(
+        "Template '{}' not found. Available templates: {}",
+        template_id,
+        list_template_ids().join(", ")
+    ))
+}
+
+/// Validate and save a custom template override (JSON) to the user's templates
+/// directory. Overrides built-in/bundled templates with the same id.
+pub fn save_custom_template(template_id: &str, json_content: &str) -> Result<(), String> {
+    // Reject before writing anything
+    validate_and_parse_template(json_content)?;
+
+    let dir = get_custom_templates_dir()
+        .ok_or("Could not resolve the custom templates directory")?;
+    std::fs::create_dir_all(&dir)
+        .map_err(|e| format!("Failed to create templates directory: {}", e))?;
+    let path = dir.join(format!("{}.json", template_id));
+    std::fs::write(&path, json_content)
+        .map_err(|e| format!("Failed to write template file: {}", e))?;
+
+    info!("Saved custom template '{}' to {:?}", template_id, path);
+    Ok(())
+}
+
+/// Delete a custom override for the given template id, restoring the
+/// built-in/bundled template. Returns true if an override was removed.
+pub fn delete_custom_template(template_id: &str) -> Result<bool, String> {
+    let Some(dir) = get_custom_templates_dir() else {
+        return Ok(false);
+    };
+    let path = dir.join(format!("{}.json", template_id));
+    if path.exists() {
+        std::fs::remove_file(&path)
+            .map_err(|e| format!("Failed to delete template override: {}", e))?;
+        info!("Deleted custom template override '{}'", template_id);
+        Ok(true)
+    } else {
+        Ok(false)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

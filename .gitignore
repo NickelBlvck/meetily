@@ -76,4 +76,6 @@ experiments/
 .cursor/
 target/
 
-frontend/src-tauri/binaries/
+frontend/src-tauri/binaries/.serena/
+.zcodeignore
+FORK_PLAN.md

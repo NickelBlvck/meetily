@@ -5,25 +5,31 @@ import { VisuallyHidden } from "./ui/visually-hidden";
 import { About } from "./About";
 
 interface InfoProps {
-    isCollapsed: boolean;
+    /** true renders the compact rail button (collapsed sidebar) */
+    isCollapsed?: boolean;
+    /** "icon" renders a compact 9x9 icon button for the sidebar footer action row */
+    variant?: 'full' | 'icon';
 }
 
-const Info = React.forwardRef<HTMLButtonElement, InfoProps>(({ isCollapsed }, ref) => {
+const Info = React.forwardRef<HTMLButtonElement, InfoProps>(({ isCollapsed, variant = 'full' }, ref) => {
+  const isIconVariant = variant === 'icon';
   return (
     <Dialog aria-describedby={undefined}>
       <DialogTrigger asChild>
-        <button 
-          ref={ref} 
-          className={`flex items-center justify-center mb-2 cursor-pointer border-none transition-colors ${
-            isCollapsed 
-              ? "bg-transparent p-2 hover:bg-gray-100 rounded-lg" 
-              : "w-full px-3 py-1.5 mt-1 text-sm font-medium text-gray-700 bg-gray-200 hover:bg-gray-200 rounded-lg shadow-sm"
+        <button
+          ref={ref}
+          className={`flex items-center justify-center cursor-pointer border-none transition-colors ${
+            isIconVariant
+              ? "h-9 w-9 rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground"
+              : isCollapsed
+                ? "bg-transparent p-2 hover:bg-muted rounded-lg"
+                : "w-full px-3 py-1.5 mt-1 text-sm font-medium text-foreground/80 bg-muted hover:bg-muted rounded-lg shadow-sm"
           }`}
           title="About Meetily"
         >
-          <InfoIcon className={`text-gray-600 ${isCollapsed ? "w-5 h-5" : "w-4 h-4"}`} />
-          {!isCollapsed && (
-            <span className="ml-2 text-sm text-gray-700">About</span>
+          <InfoIcon className={`text-muted-foreground ${isCollapsed && !isIconVariant ? "w-5 h-5" : "w-4 h-4"}`} />
+          {!isCollapsed && !isIconVariant && (
+            <span className="ml-2 text-sm text-foreground/80">About</span>
           )}
         </button>
       </DialogTrigger>
